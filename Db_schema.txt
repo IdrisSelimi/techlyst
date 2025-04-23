@@ -1,0 +1,113 @@
+-- 📦 Techlyst PostgreSQL Schema (Updated: Listing-based marketplace + proposed features)
+
+-- 🧑 users
+CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  email VARCHAR UNIQUE NOT NULL,
+  username VARCHAR UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  role VARCHAR DEFAULT 'buyer', -- buyer | seller | admin
+  is_verified BOOLEAN DEFAULT FALSE, -- ✅ for seller/buyer trust
+  reputation_score INTEGER DEFAULT 0, -- ✅ user credibility
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 📁 categories
+CREATE TABLE categories (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR NOT NULL,
+  slug VARCHAR UNIQUE NOT NULL
+);
+
+-- 📦 listings
+CREATE TABLE listings (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR NOT NULL,
+  description TEXT,
+  price DECIMAL(10, 2) NOT NULL,
+  condition VARCHAR, -- new | used
+  status VARCHAR DEFAULT 'active', -- active | hidden | expired
+  category_id INT REFERENCES categories(id),
+  seller_id INT REFERENCES users(id) ON DELETE CASCADE,
+  contact_info TEXT NOT NULL, -- e.g., email, phone, discord
+  country VARCHAR, -- location-based browsing
+  city VARCHAR,
+  postal_code VARCHAR,
+  specs JSONB, -- for filtering/search
+  expires_at TIMESTAMP, -- auto-expire listings
+  renewed_at TIMESTAMP, -- ✅ proposed: to track listing renewals
+  is_flagged BOOLEAN DEFAULT FALSE, -- moderation flag
+  is_approved BOOLEAN DEFAULT TRUE, -- admin control
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 🖼️ listing_images
+CREATE TABLE listing_images (
+  id SERIAL PRIMARY KEY,
+  listing_id INT REFERENCES listings(id) ON DELETE CASCADE,
+  url TEXT NOT NULL,
+  is_primary BOOLEAN DEFAULT FALSE
+);
+
+-- 💸 payments (listing fees only)
+CREATE TABLE payments (
+  id SERIAL PRIMARY KEY,
+  user_id INT REFERENCES users(id),
+  listing_id INT REFERENCES listings(id),
+  amount DECIMAL(10, 2) NOT NULL,
+  status VARCHAR DEFAULT 'pending', -- pending | paid | failed
+  paid_at TIMESTAMP
+);
+
+-- ⭐ favorites
+CREATE TABLE favorites (
+  id SERIAL PRIMARY KEY,
+  user_id INT REFERENCES users(id),
+  listing_id INT REFERENCES listings(id),
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 💬 messages (optional for buyer-seller communication)
+CREATE TABLE messages (
+  id SERIAL PRIMARY KEY,
+  sender_id INT REFERENCES users(id),
+  receiver_id INT REFERENCES users(id),
+  listing_id INT REFERENCES listings(id),
+  message TEXT,
+  sent_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 👁️ listing_views (analytics)
+CREATE TABLE listing_views (
+  id SERIAL PRIMARY KEY,
+  listing_id INT REFERENCES listings(id) ON DELETE CASCADE,
+  user_id INT REFERENCES users(id),
+  viewed_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 🚨 reports (listing + user moderation)
+CREATE TABLE reports (
+  id SERIAL PRIMARY KEY,
+  reporter_id INT REFERENCES users(id),
+  listing_id INT REFERENCES listings(id),
+  reported_user_id INT REFERENCES users(id), -- ✅ proposed: report users
+  reason TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 🌟 reviews (✅ proposed: user reviews)
+CREATE TABLE reviews (
+  id SERIAL PRIMARY KEY,
+  reviewer_id INT REFERENCES users(id),
+  reviewed_user_id INT REFERENCES users(id),
+  rating INT CHECK (rating BETWEEN 1 AND 5),
+  comment TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- ⚙️ settings (site-wide config)
+CREATE TABLE settings (
+  key VARCHAR PRIMARY KEY,
+  value TEXT
+);
+
