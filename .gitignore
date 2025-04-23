@@ -1,4 +1,4 @@
-# Ignore nested techlyst folder
+# Ignore the old techlyst directory with nested .git
 /techlyst/
 
 # Dependency directories
